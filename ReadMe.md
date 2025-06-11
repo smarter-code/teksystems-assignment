@@ -46,7 +46,7 @@ The solution uses a **SQLite** database, which is included in the repository und
 
 The following diagram illustrates the database schema:
 
-![Database Design](../DatabaseDesign.png)
+![Database Design](https://i.imgur.com/TYGREvm.png)
 
 ---
 
