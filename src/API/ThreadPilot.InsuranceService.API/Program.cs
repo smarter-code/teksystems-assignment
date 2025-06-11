@@ -57,16 +57,12 @@ app.UseExceptionHandler();
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
-
-// Only run migrations if not in Testing environment
-if (!app.Environment.IsEnvironment("Testing"))
-{
     using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         dbContext.Database.Migrate();
     }
-}
+
 
 app.Run();
 

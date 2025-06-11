@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ThreadPilot.Application.Common.Interfaces;
 using ThreadPilot.Application.Features.Insurances.Queries.GetInsurancesByPersonalId;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ThreadPilot.Infrastructure.Services;
 
@@ -14,12 +15,14 @@ public class VehicleServiceClient : IVehicleServiceClient
     private readonly ILogger<VehicleServiceClient> _logger;
     private readonly IConfiguration _configuration;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly IMemoryCache _cache;
 
-    public VehicleServiceClient(HttpClient httpClient, ILogger<VehicleServiceClient> logger, IConfiguration configuration)
+    public VehicleServiceClient(HttpClient httpClient, ILogger<VehicleServiceClient> logger, IConfiguration configuration, IMemoryCache cache)
     {
         _httpClient = httpClient;
         _logger = logger;
         _configuration = configuration;
+        _cache = cache;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -28,16 +31,13 @@ public class VehicleServiceClient : IVehicleServiceClient
 
     public async Task<VehicleInfoDto> GetVehicleAsync(string registrationNumber, CancellationToken cancellationToken)
     {
+        string cacheKey = $"VehicleInfo_{registrationNumber}";
+        if (_cache.TryGetValue<VehicleInfoDto>(cacheKey, out var cachedVehicle))
+        {
+            return cachedVehicle;
+        }
         try
         {
-            var baseUrl = _configuration["VehicleService:BaseUrl"];
-            var apiKey = _configuration["VehicleService:ApiKey"];
-
-            _httpClient.BaseAddress = new Uri(baseUrl);
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
             var response = await _httpClient.GetAsync($"/api/vehicles/{Uri.EscapeDataString(registrationNumber)}", cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
@@ -51,6 +51,10 @@ public class VehicleServiceClient : IVehicleServiceClient
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
             var vehicle = JsonSerializer.Deserialize<VehicleInfoDto>(content, _jsonOptions);
 
+            if (vehicle != null)
+            {
+                _cache.Set(cacheKey, vehicle, TimeSpan.FromHours(24));
+            }
             return vehicle;
         }
         catch (HttpRequestException ex)

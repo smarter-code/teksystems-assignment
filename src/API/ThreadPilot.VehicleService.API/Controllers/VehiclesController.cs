@@ -26,7 +26,7 @@ public class VehiclesController : ControllerBase
     public async Task<IActionResult> GetByRegistrationNumber(string registrationNumber)
     {
         var query = new GetVehicleByRegistrationNumberQuery(registrationNumber);
-        
+
         var result = await _mediator.Send(query);
 
         if (result.IsSuccess)
