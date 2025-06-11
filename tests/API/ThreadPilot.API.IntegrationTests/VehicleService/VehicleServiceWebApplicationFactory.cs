@@ -26,7 +26,8 @@ public class VehicleServiceWebApplicationFactory<TProgram> : WebApplicationFacto
             // Add ApplicationDbContext using an in-memory database for testing.
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseInMemoryDatabase("InMemoryDbForTesting" + Guid.NewGuid());
+                // Use a fixed name so the test and app share the same in-memory database
+                options.UseInMemoryDatabase("InMemoryDbForTesting");
             });
 
             // Build the service provider.
@@ -41,37 +42,9 @@ public class VehicleServiceWebApplicationFactory<TProgram> : WebApplicationFacto
                 // Don't call Migrate() on in-memory database
                 // Just ensure the database is created
                 db.Database.EnsureCreated();
-
-                // Seed test data
-                SeedTestData(db);
             }
         });
 
         builder.UseEnvironment("Testing");
-    }
-
-    private static void SeedTestData(ApplicationDbContext context)
-    {
-        // Seed test vehicles
-        if (!context.Vehicles.Any())
-        {
-            context.Vehicles.AddRange(
-                new Vehicle
-                {
-                    Id = 1,
-                    RegistrationNumber = "TST123",
-                    Color = "Blue",
-                    Model = "Test Model 1"
-                },
-                new Vehicle
-                {
-                    Id = 2,
-                    RegistrationNumber = "TST456",
-                    Color = "Green",
-                    Model = "Test Model 2"
-                }
-            );
-            context.SaveChanges();
-        }
     }
 }
